@@ -1,0 +1,58 @@
+version: '3.8'  # La versión ya no es necesaria en Docker Compose v2, pero es válida para mantener legibilidad.
+
+services:
+  # Servicio de PostgreSQL para la base de datos de SonarQube
+  postgres:
+    image: postgres:15  # Usa la última versión estable de PostgreSQL
+    container_name: sonarqube-postgres
+    environment:
+      POSTGRES_USER: sonar  
+      POSTGRES_PASSWORD: sonar  
+      POSTGRES_DB: sonarqube  # Base de datos que SonarQube usará
+    volumes:
+      - postgres-data:/var/lib/postgresql/data  # Volumen para persistir los datos de PostgreSQL
+    networks:
+      - sonarqube-network  # Conecta PostgreSQL a la red compartida
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar"]  # Comprueba si PostgreSQL está listo para aceptar conexiones
+      interval: 10s  # Tiempo entre comprobaciones
+      timeout: 5s  # Tiempo máximo de espera por cada comprobación
+      retries: 5  # Cantidad de reintentos antes de marcar como fallido
+
+  # Servicio de SonarQube
+  sonarqube:
+    image: sonarqube:latest  # Imagen oficial de SonarQube
+    container_name: sonarqube-server
+    ports:
+      - "9000:9000"  # Mapea el puerto 9000 del host al contenedor (acceso a la interfaz web)
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://postgres:5432/sonarqube  # URL de conexión a PostgreSQL
+      SONAR_JDBC_USERNAME: sonar  # Usuario para conectarse a la base de datos
+      SONAR_JDBC_PASSWORD: sonar  # Contraseña del usuario
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"  # Desactiva las verificaciones de Elasticsearch en entornos de prueba
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data  # Datos de SonarQube
+      - sonarqube-logs:/opt/sonarqube/logs  # Logs de SonarQube
+      - sonarqube-extensions:/opt/sonarqube/extensions  # Extensiones o plugins instalados
+    networks:
+      - sonarqube-network  # Conecta SonarQube a la red compartida
+    depends_on:
+      postgres:
+        condition: service_healthy  # Espera a que PostgreSQL pase el healthcheck antes de iniciar SonarQube
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000 || exit 1"]  # Comprueba si la interfaz web está activa
+      interval: 30s  # Tiempo entre comprobaciones
+      timeout: 10s  # Tiempo máximo de espera por cada comprobación
+      retries: 5  # Cantidad de reintentos antes de marcar como fallido
+
+# Declaración de volúmenes para persistencia de datos
+volumes:
+  postgres-data:  # Datos de PostgreSQL
+  sonarqube-data:  # Datos de configuración y análisis de SonarQube
+  sonarqube-logs:  # Logs generados por SonarQube
+  sonarqube-extensions:  # Plugins y extensiones de SonarQube
+
+# Configuración de la red compartida entre los servicios
+networks:
+  sonarqube-network:
+    driver: bridge  # Tipo de red: bridge (predeterminada para contenedores)
