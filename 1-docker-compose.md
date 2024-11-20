@@ -46,8 +46,11 @@ docker compose up -d <nombre servicio>
 docker compose ps
 ```
 ### COMPLETAR CON UNA CAPTURA DE PANTALLA DEL LISTADO DE LOS CONTENEDORES EN EJECUCIÓN
+Una vez realizados algunos cambioes en el compose al usar el comando docker compose ps, obtenemos el siguietne resultado:
+![Docker Compose Up](imagenes/c1.PNG)
 
 ### Detener y eliminar los contenedores definidos en el archivo
 ```
 docker compose down
 ```
+![Docker Compose DOWN](imagenes/c2.PNG)
